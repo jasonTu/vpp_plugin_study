@@ -55,7 +55,7 @@ static clib_error_t *plugin_test_init(vlib_main_t *vm) {
     return 0;
 }
 
-VLIB_CLI_COMMAND (ping_command, static) = {
+VLIB_CLI_COMMAND (plugin_test_command, static) = {
     .path = "plugin test",
     .short_help = "plugin test <interface-name> [enable/disable]",
     .function = plugin_test_enable_disable_cmd_fn,
