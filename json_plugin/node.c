@@ -15,15 +15,6 @@ typedef enum
 
 extern vlib_node_registration_t plugin_test_node;
 
-/*
-typedef struct
-{
-  u32 next_index;
-  u32 sw_if_index;
-  u8 new_src_mac[6];
-  u8 new_dst_mac[6];
-} plugin_test_trace_t;
-
 #define foreach_plugin_test_error \
     _(SHOWED, "show packets processed")
 
@@ -41,12 +32,6 @@ static char *plugin_test_error_strings[] = {
 #undef _
 };
 
-static u8 *format_plugin_test_trace(u8 * s, va_list * args)
-{
-    s = format(s, "To Do!\n");
-    return s;
-}
-*/
 typedef struct {
     u32 sw_if_index;
     u32 next_index;
@@ -139,7 +124,8 @@ VLIB_REGISTER_NODE (plugin_test_node) = {
     .vector_size = sizeof(u32),
     .format_trace = format_defend_land_attack_trace,
     .type = VLIB_NODE_TYPE_INTERNAL,
-    //.n_errors = ARRAY_LEN(plugin_test_error_strings),
+    .n_errors = ARRAY_LEN(plugin_test_error_strings),
+    .error_strings = plugin_test_error_strings,
     .n_next_nodes = PLUGIN_TEST_NEXT_N,
     .next_nodes = {
         [PLUGIN_TEST_NEXT_IP4] = "ip4-lookup",
