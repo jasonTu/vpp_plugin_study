@@ -47,6 +47,24 @@ static u8 *format_plugin_test_trace(u8 * s, va_list * args)
     return s;
 }
 */
+typedef struct {
+    u32 sw_if_index;
+    u32 next_index;
+    ip4_address_t src_address;
+    ip4_address_t dst_address;
+} defend_land_attack_trace_t;
+
+static u8* format_defend_land_attack_trace(u8 *s, va_list *args)
+{
+    CLIB_UNUSED(vlib_main_t * vm) = va_arg (*args, vlib_main_t *);
+    CLIB_UNUSED(vlib_node_t * node) = va_arg (*args, vlib_node_t *);
+    defend_land_attack_trace_t *t = va_arg(*args, defend_land_attack_trace_t *);
+    s = format(s, "DEFEND_LAND_ATTACK: sw_if_index %d, next index %d, src %U, dst %U",
+        t->sw_if_index, t->next_index,
+        format_ip4_address, &t->src_address,
+        format_ip4_address, &t->dst_address);
+    return s;
+}
 
 // Packet handler
 static uword plugin_test_node_fn(vlib_main_t *vm, vlib_node_runtime_t *node,
@@ -91,8 +109,17 @@ static uword plugin_test_node_fn(vlib_main_t *vm, vlib_node_runtime_t *node,
             ip0 = (ip4_header_t *)en0;
             if (ip0->src_address.as_u32 == ip0->dst_address.as_u32) {
                 printf("This is a land attack packet!\n");
-                // Drop the paacket
+                // Drop the packet
                 next0 = PLUGIN_TEST_DROP;
+            }
+
+            if (PREDICT_FALSE( (node->flags && VLIB_NODE_FLAG_TRACE) &&
+                (b0->flags && VLIB_BUFFER_IS_TRACED)) ) {
+                defend_land_attack_trace_t *t = vlib_add_trace(vm, node, b0, sizeof(*t));
+                t->sw_if_index = vnet_buffer(b0)->sw_if_index[VLIB_RX];
+                t->next_index = next_index;
+                t->src_address = ip0->src_address;
+                t->dst_address = ip0->dst_address;
             }
             vlib_validate_buffer_enqueue_x1(vm, node, next_index,
                     to_next, n_left_to_next, bi0, next0);
@@ -107,8 +134,10 @@ static uword plugin_test_node_fn(vlib_main_t *vm, vlib_node_runtime_t *node,
 VLIB_REGISTER_NODE (plugin_test_node) = {
     .name = "plugin_test",
     .function = plugin_test_node_fn,
+    // The following flag is not mandatory.
+    //.flags = VLIB_NODE_FLAG_TRACE_SUPPORTED,
     .vector_size = sizeof(u32),
-    //.format_trace = format_plugin_test_trace,
+    .format_trace = format_defend_land_attack_trace,
     .type = VLIB_NODE_TYPE_INTERNAL,
     //.n_errors = ARRAY_LEN(plugin_test_error_strings),
     .n_next_nodes = PLUGIN_TEST_NEXT_N,
